@@ -2,52 +2,33 @@
 
 import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Plus } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Plus, Search, LayoutGrid, Table2, Settings, Clock } from "lucide-react"
 import { KanbanBoard, NewProposalDialog } from "@/components/pipeline"
-import { mockPipelineProposals, getPipelineSummary } from "@/lib/mock-pipeline"
+import { mockPipelineProposals, pipelineOwners, getPipelineSummary } from "@/lib/mock-pipeline"
 import { updateProposalStatus } from "@/lib/actions/proposals"
 import { toast } from "sonner"
-import type { TypeFilter } from "@/types/pipeline"
-import type { ProposalStatus } from "@/types/cunningham"
+import type { TypeFilter, PipelineStatus } from "@/types/pipeline"
 import { cn } from "@/lib/utils"
-
-// Get unique owners from proposals
-const getOwners = () => {
-  const ownerMap = new Map<string, { name: string; initials: string }>()
-  mockPipelineProposals.forEach((p) => {
-    if (!ownerMap.has(p.owner)) {
-      const initials = p.owner_name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-      ownerMap.set(p.owner, { name: p.owner_name, initials })
-    }
-  })
-  return Array.from(ownerMap.entries()).map(([id, data]) => ({ id, ...data }))
-}
 
 export default function PipelinePage() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
   const [selectedOwners, setSelectedOwners] = useState<string[]>([])
   const [staleOnly, setStaleOnly] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const [newProposalOpen, setNewProposalOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const summary = getPipelineSummary()
-  const owners = getOwners()
 
   const handleStatusChange = async (
     proposalId: string,
-    newStatus: ProposalStatus,
+    newStatus: PipelineStatus,
     metadata?: Record<string, unknown>
   ) => {
     startTransition(async () => {
-      const result = await updateProposalStatus(proposalId, newStatus, metadata)
+      const result = await updateProposalStatus(proposalId, newStatus as string, metadata)
       
       if (result.success) {
         toast.success("Status Updated", {
@@ -80,6 +61,19 @@ export default function PipelinePage() {
     
     // Stale filter
     if (staleOnly && !p.is_stale) return false
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      const searchable = [
+        p.customer_name,
+        p.site_name,
+        p.tank_name,
+        p.title,
+        p.scope_summary,
+      ].filter(Boolean).join(" ").toLowerCase()
+      if (!searchable.includes(query)) return false
+    }
     
     return true
   })
@@ -89,10 +83,11 @@ export default function PipelinePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Pipeline</h1>
-          <p className="text-sm text-muted-foreground">
-            {summary.totalActive} active projects{" "}
-            <span className="text-foreground font-medium">
+          <h1 className="text-2xl font-semibold text-foreground">Pipeline</h1>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-0.5">
+            <span>{summary.totalActive} active projects</span>
+            <span>·</span>
+            <span className="font-medium text-foreground">
               {summary.totalValue.toLocaleString("en-US", {
                 style: "currency",
                 currency: "USD",
@@ -101,75 +96,112 @@ export default function PipelinePage() {
               })} in flight
             </span>
             {summary.staleCount > 0 && (
-              <Badge variant="outline" className="ml-2 border-yellow-400 bg-yellow-50 text-yellow-700">
-                {summary.staleCount} stale
-              </Badge>
+              <>
+                <Clock className="h-3.5 w-3.5 text-red-500 ml-1" />
+                <span className="text-red-500">{summary.staleCount} stale</span>
+              </>
             )}
-          </p>
+          </div>
         </div>
-        <Button onClick={() => setNewProposalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Lead
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setNewProposalOpen(true)} className="bg-orange-500 hover:bg-orange-600 text-white">
+            <Plus className="mr-1.5 h-4 w-4" />
+            New Lead
+          </Button>
+          <div className="flex items-center border rounded-md">
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-r-none bg-muted">
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-none border-l">
+              <Table2 className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-l-none border-l">
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Filters Row */}
-      <div className="flex flex-wrap items-center gap-4">
-        {/* Type Filter */}
-        <ToggleGroup
-          type="single"
-          value={typeFilter}
-          onValueChange={(v) => v && setTypeFilter(v as TypeFilter)}
-          className="justify-start"
-        >
-          <ToggleGroupItem value="negotiated" aria-label="Negotiated" className="text-sm">
-            Negotiated
-          </ToggleGroupItem>
-          <ToggleGroupItem value="engineered" aria-label="Engineered specs" className="text-sm">
-            Eng-Spec
-          </ToggleGroupItem>
-        </ToggleGroup>
+      <div className="flex flex-wrap items-center gap-3 pb-2">
+        {/* Search */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 w-40 h-9"
+          />
+        </div>
 
-        {/* Separator */}
-        <div className="h-6 w-px bg-border" />
-
-        {/* Owner Avatars */}
+        {/* Type Filter Buttons */}
         <div className="flex items-center gap-1">
-          {owners.map((owner) => (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setTypeFilter(typeFilter === "negotiated" ? "all" : "negotiated")}
+            className={cn(
+              "h-9 px-3 rounded-md",
+              typeFilter === "negotiated" && "bg-muted border-primary"
+            )}
+          >
+            Negotiated
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setTypeFilter(typeFilter === "engineered" ? "all" : "engineered")}
+            className={cn(
+              "h-9 px-3 rounded-md",
+              typeFilter === "engineered" && "bg-muted border-primary"
+            )}
+          >
+            Eng-Spec
+          </Button>
+        </div>
+
+        {/* Owner Avatar Pills */}
+        <div className="flex items-center gap-1">
+          {pipelineOwners.map((owner) => (
             <button
               key={owner.id}
               onClick={() => toggleOwner(owner.id)}
               className={cn(
-                "relative rounded-full transition-all",
+                "flex items-center gap-1.5 h-9 px-2 pr-3 rounded-full border transition-all",
                 selectedOwners.includes(owner.id)
-                  ? "ring-2 ring-primary ring-offset-2"
-                  : "opacity-60 hover:opacity-100"
+                  ? "bg-muted border-primary"
+                  : "bg-background border-border hover:bg-muted/50"
               )}
-              title={owner.name}
             >
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-muted text-xs font-medium">
-                  {owner.initials}
-                </AvatarFallback>
-              </Avatar>
+              <div className={cn(
+                "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium",
+                owner.id === 'ron' && "bg-gray-200 text-gray-700",
+                owner.id === 'joshua' && "bg-orange-100 text-orange-700",
+                owner.id === 'mike' && "bg-blue-100 text-blue-700",
+                owner.id === 'curtis' && "bg-green-100 text-green-700",
+              )}>
+                {owner.initials[0]}
+              </div>
+              <span className="text-sm">{owner.name}</span>
             </button>
           ))}
         </div>
 
-        {/* Separator */}
-        <div className="h-6 w-px bg-border" />
-
         {/* Stale Only Toggle */}
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <Checkbox
+        <div className="flex items-center gap-2 ml-2">
+          <Switch
+            id="stale-only"
             checked={staleOnly}
-            onCheckedChange={(checked) => setStaleOnly(checked === true)}
+            onCheckedChange={setStaleOnly}
           />
-          <span className="text-muted-foreground">Stale only</span>
-        </label>
+          <label htmlFor="stale-only" className="text-sm text-muted-foreground cursor-pointer">
+            Stale only
+          </label>
+        </div>
 
         {/* Clear filters */}
-        {(typeFilter !== "all" || selectedOwners.length > 0 || staleOnly) && (
+        {(typeFilter !== "all" || selectedOwners.length > 0 || staleOnly || searchQuery) && (
           <Button
             variant="ghost"
             size="sm"
@@ -177,8 +209,9 @@ export default function PipelinePage() {
               setTypeFilter("all")
               setSelectedOwners([])
               setStaleOnly(false)
+              setSearchQuery("")
             }}
-            className="text-xs text-muted-foreground"
+            className="text-xs text-muted-foreground h-9"
           >
             Clear filters
           </Button>

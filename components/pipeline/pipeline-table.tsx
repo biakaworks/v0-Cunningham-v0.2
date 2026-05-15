@@ -30,9 +30,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { ChevronDown, ChevronUp, Download, Calendar, UserPlus, Search, Filter } from "lucide-react"
 import Link from "next/link"
-import type { PipelineProposal, TypeFilter } from "@/types/pipeline"
-import type { ProposalStatus } from "@/types/cunningham"
-import { STATUS_COLORS, TYPE_COLORS, PROPOSAL_STATUSES } from "@/types/pipeline"
+import type { PipelineProposal, TypeFilter, PipelineStatus } from "@/types/pipeline"
+import { STATUS_COLORS, TYPE_COLORS, PIPELINE_STATUSES } from "@/types/pipeline"
 
 interface PipelineTableProps {
   proposals: PipelineProposal[]
@@ -48,7 +47,7 @@ export function PipelineTable({ proposals, typeFilter, onBulkAction }: PipelineT
   const [sortKey, setSortKey] = useState<SortKey>("age_days")
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<ProposalStatus | "all">("all")
+  const [statusFilter, setStatusFilter] = useState<PipelineStatus | "all">("all")
   const [staleOnly, setStaleOnly] = useState(false)
 
   const filteredAndSorted = useMemo(() => {
@@ -194,14 +193,14 @@ export function PipelineTable({ proposals, typeFilter, onBulkAction }: PipelineT
             />
           </div>
 
-          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ProposalStatus | "all")}>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as PipelineStatus | "all")}>
             <SelectTrigger className="w-40">
               <Filter className="mr-2 h-4 w-4" />
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              {PROPOSAL_STATUSES.map((s) => (
+              {PIPELINE_STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
                   {s}
                 </SelectItem>

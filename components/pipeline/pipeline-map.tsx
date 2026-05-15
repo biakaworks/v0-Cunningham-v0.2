@@ -4,8 +4,8 @@ import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { MapPin } from "lucide-react"
-import type { PipelineProposal, TypeFilter } from "@/types/pipeline"
-import { STATUS_DOT_COLORS } from "@/types/pipeline"
+import type { PipelineProposal, TypeFilter, PipelineStatus } from "@/types/pipeline"
+import { STATUS_COLORS } from "@/types/pipeline"
 import dynamic from "next/dynamic"
 
 // Dynamically import Leaflet components to avoid SSR issues
@@ -50,7 +50,7 @@ export function PipelineMap({ proposals, typeFilter }: PipelineMapProps) {
 
   const filteredProposals = proposals.filter((p) => {
     // Only active proposals
-    if (!["Draft", "Sent", "Follow-Up Due", "Pending Board Approval"].includes(p.status)) {
+    if (!["Lead", "Inspection", "Proposal", "Scheduled", "In Progress"].includes(p.status)) {
       return false
     }
     if (typeFilter === "engineered") return p.proposal_type === "Engineered Spec"
@@ -115,7 +115,7 @@ export function PipelineMap({ proposals, typeFilter }: PipelineMapProps) {
                         >
                           <div className="flex items-center gap-1">
                             <div
-                              className={`h-2 w-2 rounded-full ${STATUS_DOT_COLORS[p.status]}`}
+                              className={`h-2 w-2 rounded-full ${STATUS_COLORS[p.status]?.split(' ')[0] || 'bg-gray-400'}`}
                             />
                             <span className="truncate max-w-[120px]">{p.title}</span>
                           </div>
