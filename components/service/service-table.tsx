@@ -32,7 +32,7 @@ import {
 
 import type { ServiceDueItem, ServiceDueListStatus } from '@/types/service'
 import { SERVICE_STATUS_OPTIONS, OUTREACH_STATUS_OPTIONS } from '@/types/service'
-import { updateServiceVisitStatus } from '@/lib/actions/service-visits'
+import { updateServiceSchedule } from '@/lib/actions/service'
 
 interface ServiceTableProps {
   items: ServiceDueItem[]
@@ -114,7 +114,7 @@ export function ServiceTable({
   
   const handleStatusChange = (itemName: string, newStatus: ServiceDueListStatus) => {
     startTransition(async () => {
-      const result = await updateServiceVisitStatus(itemName, newStatus)
+      const result = await updateServiceSchedule(itemName, { status: newStatus })
       if (result.success) {
         toast.success('Status Updated', {
           description: `Service status changed to ${newStatus}`,

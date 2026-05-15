@@ -36,7 +36,7 @@ import {
 } from 'lucide-react'
 
 import { MOCK_OUTREACH_TEMPLATES, type OutreachTemplate } from '@/types/service'
-import { sendOutreachBatch } from '@/lib/actions/service-visits'
+import { generateOutreach } from '@/lib/actions/service'
 
 interface OutreachPanelProps {
   selectedCustomerIds: string[]
@@ -67,16 +67,21 @@ export function OutreachPanel({
     if (!selectedTemplate || selectedCustomerIds.length === 0) return
     
     startTransition(async () => {
-      const result = await sendOutreachBatch(selectedCustomerIds, selectedTemplate.id)
+      const result = await generateOutreach({
+        customerIds: selectedCustomerIds,
+        templateType: 'email',
+        serviceType: selectedTemplate.id,
+        includeQuote: false
+      })
       if (result.success) {
-        toast.success('Outreach Sent', {
-          description: `Sent ${selectedCustomerIds.length} outreach emails`,
+        toast.success('Outreach Generated', {
+          description: result.message || `Generated outreach for ${selectedCustomerIds.length} customers`,
         })
         setDialogOpen(false)
         onClearSelection()
       } else {
         toast.error('Error', {
-          description: result.error || 'Failed to send outreach',
+          description: result.error || 'Failed to generate outreach',
         })
       }
     })
