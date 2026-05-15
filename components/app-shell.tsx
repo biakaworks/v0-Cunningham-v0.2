@@ -223,27 +223,7 @@ function SidebarContent({
         </DropdownMenu>
       </div>
 
-      {/* Collapse toggle */}
-      {showToggle && onToggle && (
-        <Tooltip delayDuration={0}>
-          <TooltipTrigger asChild>
-            <button
-              onClick={onToggle}
-              className="absolute top-20 -right-3 w-6 h-6 rounded-full border border-border bg-background shadow-sm flex items-center justify-center hover:bg-secondary transition-colors"
-            >
-              {collapsed ? (
-                <ChevronRight className="w-3 h-3 text-muted-foreground" />
-              ) : (
-                <ChevronLeft className="w-3 h-3 text-muted-foreground" />
-              )}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            {collapsed ? 'Expand' : 'Collapse'}
-          </TooltipContent>
-        </Tooltip>
-      )}
-    </div>
+      </div>
   )
 }
 
@@ -257,14 +237,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {/* Desktop Sidebar */}
         <aside
           className={cn(
-            'hidden lg:flex flex-col border-r border-border bg-card transition-all duration-300 shrink-0 relative',
+            'hidden lg:flex flex-col border-r border-border bg-card transition-all duration-300 shrink-0 relative overflow-visible',
             collapsed ? 'w-16' : 'w-64'
           )}
         >
           <SidebarContent 
             collapsed={collapsed} 
-            onToggle={() => setCollapsed(!collapsed)} 
+            showToggle={false}
           />
+          {/* Collapse toggle - positioned outside sidebar content */}
+          <Tooltip delayDuration={0}>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setCollapsed(!collapsed)}
+                className="absolute top-20 -right-3 z-50 w-6 h-6 rounded-full border border-border bg-background shadow-md flex items-center justify-center hover:bg-secondary transition-colors"
+              >
+                {collapsed ? (
+                  <ChevronRight className="w-3 h-3 text-muted-foreground" />
+                ) : (
+                  <ChevronLeft className="w-3 h-3 text-muted-foreground" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {collapsed ? 'Expand' : 'Collapse'}
+            </TooltipContent>
+          </Tooltip>
         </aside>
 
         {/* Mobile Sidebar */}
