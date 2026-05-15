@@ -1,11 +1,14 @@
-import { StagePlaceholder } from '@/components/stage-placeholder'
+import { ServiceTowerMap } from '@/components/map'
+
+export const metadata = {
+  title: 'Service Tower Map | Cunningham Operations Hub',
+  description: 'Interactive map of all Cunningham service towers with status filtering',
+}
 
 export default function MapPage() {
   return (
-    <StagePlaceholder
-      title="Service Tower Map"
-      stage={3}
-      description="Full-screen map with clickable service tower markers, status filtering, and site details."
-    />
+    <div className="h-[calc(100vh-4rem)] w-full">
+      <ServiceTowerMap />
+    </div>
   )
 }
