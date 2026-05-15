@@ -250,7 +250,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <TooltipTrigger asChild>
               <button
                 onClick={() => setCollapsed(!collapsed)}
-                className="absolute top-20 -right-3 z-50 w-6 h-6 rounded-full border border-border bg-background shadow-md flex items-center justify-center hover:bg-secondary transition-colors"
+                className="absolute top-20 -right-3 z-[1000] w-6 h-6 rounded-full border border-border bg-background shadow-md flex items-center justify-center hover:bg-secondary transition-colors"
               >
                 {collapsed ? (
                   <ChevronRight className="w-3 h-3 text-muted-foreground" />
