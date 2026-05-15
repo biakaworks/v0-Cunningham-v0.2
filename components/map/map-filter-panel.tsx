@@ -317,14 +317,14 @@ export function MapFilterPanel({
           <div className="space-y-2">
             <Label className="text-sm font-medium">Service Year</Label>
             <Select
-              value={filters.service_year?.toString() || ''}
-              onValueChange={(value) => updateFilter('service_year', value ? parseInt(value) : null)}
+              value={filters.service_year?.toString() || 'all'}
+              onValueChange={(value) => updateFilter('service_year', value === 'all' ? null : parseInt(value))}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All years" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All years</SelectItem>
+                <SelectItem value="all">All years</SelectItem>
                 {filterOptions.years.map((year) => (
                   <SelectItem key={year} value={year.toString()}>
                     {year}

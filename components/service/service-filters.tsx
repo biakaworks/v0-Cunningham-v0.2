@@ -157,14 +157,14 @@ export function ServiceFiltersBar({
       <div className="space-y-1">
         <Label className="text-xs text-muted-foreground">Year</Label>
         <Select
-          value={filters.year?.toString() || ''}
-          onValueChange={(value) => updateFilter('year', value ? parseInt(value) : null)}
+          value={filters.year?.toString() || 'all'}
+          onValueChange={(value) => updateFilter('year', value === 'all' ? null : parseInt(value))}
         >
           <SelectTrigger className="w-[100px] h-9">
             <SelectValue placeholder="All" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All years</SelectItem>
+            <SelectItem value="all">All years</SelectItem>
             {filterOptions.years.map((year) => (
               <SelectItem key={year} value={year.toString()}>
                 {year}
