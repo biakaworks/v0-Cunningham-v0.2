@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable"
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -26,15 +26,26 @@ import { cn } from "@/lib/utils"
 import type { PipelineProposal, TypeFilter } from "@/types/pipeline"
 import type { ProposalStatus } from "@/types/cunningham"
 import {
-  PROPOSAL_STATUSES,
   ACTIVE_STATUSES,
   CLOSED_STATUSES,
-  STATUS_DOT_COLORS,
-  TYPE_COLORS,
 } from "@/types/pipeline"
 import { LostReasonModal } from "./lost-reason-modal"
 import { DormantRevisitModal } from "./dormant-revisit-modal"
 import Link from "next/link"
+
+// Stage descriptions
+const STAGE_DESCRIPTIONS: Record<ProposalStatus, string> = {
+  Lead: "New inquiry, renewal trigger, or RFP captured",
+  Inspection: "Field work scheduled, in progress, or report being drafted",
+  Proposal: "Proposal sent to customer or bid submitted",
+  Negotiation: "Customer reviewing, follow-ups in progress",
+  Scheduled: "Won — on the work calendar with crews assigned",
+  "In Progress": "Crews are on site executing",
+  Billed: "Work complete — invoice sent to customer",
+  Paid: "Payment received — project closed",
+  Lost: "Did not win the work",
+  Dormant: "On hold — revisit later",
+}
 
 interface KanbanBoardProps {
   proposals: PipelineProposal[]
@@ -57,15 +68,8 @@ export function KanbanBoard({ proposals, typeFilter, onStatusChange }: KanbanBoa
     useSensor(KeyboardSensor)
   )
 
-  const filteredProposals = proposals.filter((p) => {
-    if (typeFilter === "all") return true
-    if (typeFilter === "engineered") return p.proposal_type === "Engineered Spec"
-    if (typeFilter === "negotiated") return p.proposal_type === "Negotiated"
-    return true
-  })
-
   const getProposalsForStatus = (status: ProposalStatus) =>
-    filteredProposals.filter((p) => p.status === status)
+    proposals.filter((p) => p.status === status)
 
   const activeProposal = activeId
     ? proposals.find((p) => p.name === activeId)
@@ -128,24 +132,25 @@ export function KanbanBoard({ proposals, typeFilter, onStatusChange }: KanbanBoa
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-3 overflow-x-auto pb-4">
           {/* Active status columns */}
           {ACTIVE_STATUSES.map((status) => (
             <KanbanColumn
               key={status}
               status={status}
               proposals={getProposalsForStatus(status)}
-              isClosedColumn={false}
+              description={STAGE_DESCRIPTIONS[status]}
             />
           ))}
 
-          {/* Closed status columns - narrower */}
+          {/* Closed status columns */}
           {CLOSED_STATUSES.map((status) => (
             <KanbanColumn
               key={status}
               status={status}
               proposals={getProposalsForStatus(status)}
-              isClosedColumn={true}
+              description={STAGE_DESCRIPTIONS[status]}
+              isClosedColumn
             />
           ))}
         </div>
@@ -175,38 +180,40 @@ export function KanbanBoard({ proposals, typeFilter, onStatusChange }: KanbanBoa
 interface KanbanColumnProps {
   status: ProposalStatus
   proposals: PipelineProposal[]
-  isClosedColumn: boolean
+  description: string
+  isClosedColumn?: boolean
 }
 
-function KanbanColumn({ status, proposals, isClosedColumn }: KanbanColumnProps) {
+function KanbanColumn({ status, proposals, description, isClosedColumn = false }: KanbanColumnProps) {
   const totalValue = proposals.reduce((sum, p) => sum + (p.total || 0), 0)
 
   return (
     <div
       className={cn(
-        "flex-shrink-0 rounded-lg bg-muted/50",
-        isClosedColumn ? "w-56" : "w-72"
+        "flex-shrink-0 rounded-lg",
+        isClosedColumn ? "w-52" : "w-72"
       )}
+      id={status}
     >
-      <div className="sticky top-0 bg-muted/50 p-3 backdrop-blur">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={cn("h-2.5 w-2.5 rounded-full", STATUS_DOT_COLORS[status])} />
-            <h3 className="text-sm font-medium">{status}</h3>
-          </div>
-          <Badge variant="secondary" className="text-xs">
-            {proposals.length}
-          </Badge>
+      {/* Column Header */}
+      <div className="mb-3">
+        <div className="flex items-baseline gap-2">
+          <h3 className="text-base font-semibold">{status}</h3>
+          <span className="text-sm text-muted-foreground">{proposals.length}</span>
+          {!isClosedColumn && totalValue > 0 && (
+            <span className="text-sm font-medium text-muted-foreground">
+              {totalValue.toLocaleString("en-US", {
+                style: "currency",
+                currency: "USD",
+                notation: "compact",
+                maximumFractionDigits: 0,
+              })}
+            </span>
+          )}
         </div>
-        {!isClosedColumn && totalValue > 0 && (
-          <p className="mt-1 text-xs text-muted-foreground">
-            {totalValue.toLocaleString("en-US", {
-              style: "currency",
-              currency: "USD",
-              maximumFractionDigits: 0,
-            })}
-          </p>
-        )}
+        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+          {description}
+        </p>
       </div>
 
       <SortableContext
@@ -214,14 +221,14 @@ function KanbanColumn({ status, proposals, isClosedColumn }: KanbanColumnProps) 
         items={proposals.map((p) => p.name)}
         strategy={verticalListSortingStrategy}
       >
-        <ScrollArea className={cn("px-2 pb-2", isClosedColumn ? "h-[400px]" : "h-[500px]")}>
-          <div className="flex flex-col gap-2 pt-1" id={status}>
+        <ScrollArea className={cn(isClosedColumn ? "h-[450px]" : "h-[500px]")}>
+          <div className="flex flex-col gap-2 pr-2">
             {proposals.map((proposal) => (
               <SortableProposalCard key={proposal.name} proposal={proposal} />
             ))}
             {proposals.length === 0 && (
-              <div className="flex h-24 items-center justify-center rounded-md border border-dashed text-sm text-muted-foreground">
-                No proposals
+              <div className="flex h-20 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+                No items
               </div>
             )}
           </div>
@@ -272,57 +279,29 @@ function ProposalCard({
     .join("")
     .toUpperCase()
 
+  const isEngineered = proposal.proposal_type === "Engineered Spec"
+
   return (
     <Card
       className={cn(
-        "cursor-grab transition-shadow hover:shadow-md",
-        isDragging && "rotate-3 shadow-lg"
+        "cursor-grab transition-shadow hover:shadow-md bg-card",
+        isDragging && "rotate-2 shadow-lg"
       )}
     >
-      <CardContent className="p-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <Link
-              href={`/proposals/${proposal.name}`}
-              className="text-sm font-medium hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {proposal.customer_name}
-            </Link>
-            <p className="truncate text-xs text-muted-foreground">
-              {proposal.site_name}
-            </p>
-          </div>
-          <Avatar className="h-6 w-6">
-            <AvatarFallback className="bg-mwi-accent text-[10px] text-mwi-navy">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-        </div>
-
-        <p className="mt-2 line-clamp-1 text-xs text-muted-foreground">
-          {proposal.title}
-        </p>
-
-        <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Badge
-              variant="outline"
-              className={cn("text-[10px] px-1.5 py-0", TYPE_COLORS[proposal.proposal_type])}
-            >
-              {proposal.proposal_type === "Engineered Spec" ? "Eng" : "Neg"}
-            </Badge>
-            {proposal.is_stale && (
-              <Badge variant="outline" className="border-yellow-400 bg-yellow-50 text-[10px] text-yellow-700 px-1.5 py-0">
-                Stale
-              </Badge>
+      <CardContent className="p-3 space-y-2">
+        {/* Type badge and price */}
+        <div className="flex items-center justify-between">
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-xs font-normal",
+              isEngineered
+                ? "border-blue-300 bg-blue-50 text-blue-700"
+                : "border-gray-300 bg-gray-50 text-gray-700"
             )}
-            {proposal.is_revived && (
-              <Badge variant="outline" className="border-green-400 bg-green-50 text-[10px] text-green-700 px-1.5 py-0">
-                Revived
-              </Badge>
-            )}
-          </div>
+          >
+            {isEngineered ? "Eng-Spec" : "Negotiated"}
+          </Badge>
           <span className="text-sm font-semibold">
             {(proposal.total || 0).toLocaleString("en-US", {
               style: "currency",
@@ -332,14 +311,50 @@ function ProposalCard({
           </span>
         </div>
 
-        <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
-          <span>{proposal.age_days}d old</span>
-          {proposal.next_follow_up_date && (
-            <span>
-              Follow-up: {new Date(proposal.next_follow_up_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+        {/* Customer name */}
+        <Link
+          href={`/proposals/${proposal.name}`}
+          className="block text-sm font-medium hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {proposal.customer_name}
+        </Link>
+
+        {/* Tank/Site */}
+        <p className="text-xs text-muted-foreground">
+          {proposal.tank_name || proposal.site_name}
+        </p>
+
+        {/* Scope */}
+        <p className="text-xs text-muted-foreground line-clamp-1">
+          {proposal.title}
+        </p>
+
+        {/* Owner and days */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-1.5">
+            <Avatar className="h-5 w-5">
+              <AvatarFallback className="bg-muted text-[9px] font-medium">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs text-muted-foreground">
+              {proposal.owner_name.split(" ")[0]}
             </span>
-          )}
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {proposal.days_in_stage || proposal.age_days}d in stage
+          </span>
         </div>
+
+        {/* Stale indicator */}
+        {proposal.is_stale && (
+          <div className="pt-1">
+            <Badge variant="outline" className="border-yellow-400 bg-yellow-50 text-yellow-700 text-[10px]">
+              Stale
+            </Badge>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

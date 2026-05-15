@@ -4,21 +4,42 @@ import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Badge } from "@/components/ui/badge"
-import { Kanban, Table2, Map, Plus } from "lucide-react"
-import { KanbanBoard, PipelineTable, PipelineMap, NewProposalDialog } from "@/components/pipeline"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Plus } from "lucide-react"
+import { KanbanBoard, NewProposalDialog } from "@/components/pipeline"
 import { mockPipelineProposals, getPipelineSummary } from "@/lib/mock-pipeline"
 import { updateProposalStatus } from "@/lib/actions/proposals"
 import { toast } from "sonner"
-import type { ViewMode, TypeFilter } from "@/types/pipeline"
+import type { TypeFilter } from "@/types/pipeline"
 import type { ProposalStatus } from "@/types/cunningham"
+import { cn } from "@/lib/utils"
+
+// Get unique owners from proposals
+const getOwners = () => {
+  const ownerMap = new Map<string, { name: string; initials: string }>()
+  mockPipelineProposals.forEach((p) => {
+    if (!ownerMap.has(p.owner)) {
+      const initials = p.owner_name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+      ownerMap.set(p.owner, { name: p.owner_name, initials })
+    }
+  })
+  return Array.from(ownerMap.entries()).map(([id, data]) => ({ id, ...data }))
+}
 
 export default function PipelinePage() {
-  const [viewMode, setViewMode] = useState<ViewMode>("kanban")
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all")
+  const [selectedOwners, setSelectedOwners] = useState<string[]>([])
+  const [staleOnly, setStaleOnly] = useState(false)
   const [newProposalOpen, setNewProposalOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const summary = getPipelineSummary()
+  const owners = getOwners()
 
   const handleStatusChange = async (
     proposalId: string,
@@ -40,34 +61,60 @@ export default function PipelinePage() {
     })
   }
 
+  const toggleOwner = (ownerId: string) => {
+    setSelectedOwners((prev) =>
+      prev.includes(ownerId)
+        ? prev.filter((id) => id !== ownerId)
+        : [...prev, ownerId]
+    )
+  }
+
+  // Filter proposals
+  const filteredProposals = mockPipelineProposals.filter((p) => {
+    // Type filter
+    if (typeFilter === "engineered" && p.proposal_type !== "Engineered Spec") return false
+    if (typeFilter === "negotiated" && p.proposal_type !== "Negotiated") return false
+    
+    // Owner filter
+    if (selectedOwners.length > 0 && !selectedOwners.includes(p.owner)) return false
+    
+    // Stale filter
+    if (staleOnly && !p.is_stale) return false
+    
+    return true
+  })
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Sales Pipeline</h1>
+          <h1 className="text-2xl font-semibold">Pipeline</h1>
           <p className="text-sm text-muted-foreground">
-            {summary.totalActive} active proposals worth{" "}
-            {summary.totalValue.toLocaleString("en-US", {
-              style: "currency",
-              currency: "USD",
-              maximumFractionDigits: 0,
-            })}
+            {summary.totalActive} active projects{" "}
+            <span className="text-foreground font-medium">
+              {summary.totalValue.toLocaleString("en-US", {
+                style: "currency",
+                currency: "USD",
+                notation: "compact",
+                maximumFractionDigits: 0,
+              })} in flight
+            </span>
             {summary.staleCount > 0 && (
-              <span className="ml-2 text-yellow-600">
-                ({summary.staleCount} stale)
-              </span>
+              <Badge variant="outline" className="ml-2 border-yellow-400 bg-yellow-50 text-yellow-700">
+                {summary.staleCount} stale
+              </Badge>
             )}
           </p>
         </div>
         <Button onClick={() => setNewProposalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          New Proposal
+          New Lead
         </Button>
       </div>
 
-      {/* Controls */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Filters Row */}
+      <div className="flex flex-wrap items-center gap-4">
         {/* Type Filter */}
         <ToggleGroup
           type="single"
@@ -75,66 +122,75 @@ export default function PipelinePage() {
           onValueChange={(v) => v && setTypeFilter(v as TypeFilter)}
           className="justify-start"
         >
-          <ToggleGroupItem value="all" aria-label="All proposals">
-            All
-            <Badge variant="secondary" className="ml-2">
-              {summary.totalActive}
-            </Badge>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="engineered" aria-label="Engineered specs">
-            Engineered
-            <Badge variant="secondary" className="ml-2">
-              {summary.engineeredCount}
-            </Badge>
-          </ToggleGroupItem>
-          <ToggleGroupItem value="negotiated" aria-label="Negotiated">
+          <ToggleGroupItem value="negotiated" aria-label="Negotiated" className="text-sm">
             Negotiated
-            <Badge variant="secondary" className="ml-2">
-              {summary.negotiatedCount}
-            </Badge>
+          </ToggleGroupItem>
+          <ToggleGroupItem value="engineered" aria-label="Engineered specs" className="text-sm">
+            Eng-Spec
           </ToggleGroupItem>
         </ToggleGroup>
 
-        {/* View Toggle */}
-        <ToggleGroup
-          type="single"
-          value={viewMode}
-          onValueChange={(v) => v && setViewMode(v as ViewMode)}
-        >
-          <ToggleGroupItem value="kanban" aria-label="Kanban view">
-            <Kanban className="h-4 w-4" />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="table" aria-label="Table view">
-            <Table2 className="h-4 w-4" />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="map" aria-label="Map view">
-            <Map className="h-4 w-4" />
-          </ToggleGroupItem>
-        </ToggleGroup>
+        {/* Separator */}
+        <div className="h-6 w-px bg-border" />
+
+        {/* Owner Avatars */}
+        <div className="flex items-center gap-1">
+          {owners.map((owner) => (
+            <button
+              key={owner.id}
+              onClick={() => toggleOwner(owner.id)}
+              className={cn(
+                "relative rounded-full transition-all",
+                selectedOwners.includes(owner.id)
+                  ? "ring-2 ring-primary ring-offset-2"
+                  : "opacity-60 hover:opacity-100"
+              )}
+              title={owner.name}
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-muted text-xs font-medium">
+                  {owner.initials}
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          ))}
+        </div>
+
+        {/* Separator */}
+        <div className="h-6 w-px bg-border" />
+
+        {/* Stale Only Toggle */}
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <Checkbox
+            checked={staleOnly}
+            onCheckedChange={(checked) => setStaleOnly(checked === true)}
+          />
+          <span className="text-muted-foreground">Stale only</span>
+        </label>
+
+        {/* Clear filters */}
+        {(typeFilter !== "all" || selectedOwners.length > 0 || staleOnly) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setTypeFilter("all")
+              setSelectedOwners([])
+              setStaleOnly(false)
+            }}
+            className="text-xs text-muted-foreground"
+          >
+            Clear filters
+          </Button>
+        )}
       </div>
 
-      {/* View Content */}
-      {viewMode === "kanban" && (
-        <KanbanBoard
-          proposals={mockPipelineProposals}
-          typeFilter={typeFilter}
-          onStatusChange={handleStatusChange}
-        />
-      )}
-
-      {viewMode === "table" && (
-        <PipelineTable
-          proposals={mockPipelineProposals}
-          typeFilter={typeFilter}
-        />
-      )}
-
-      {viewMode === "map" && (
-        <PipelineMap
-          proposals={mockPipelineProposals}
-          typeFilter={typeFilter}
-        />
-      )}
+      {/* Kanban Board */}
+      <KanbanBoard
+        proposals={filteredProposals}
+        typeFilter={typeFilter}
+        onStatusChange={handleStatusChange}
+      />
 
       {/* New Proposal Dialog */}
       <NewProposalDialog
