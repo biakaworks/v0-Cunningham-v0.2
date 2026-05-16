@@ -1265,9 +1265,9 @@ export default function PipelinePage() {
   }, [selectedProject, moveProject])
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col h-screen">
       {/* Sub-header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-border">
         <div>
           <h1 className="text-2xl font-bold">Pipeline</h1>
           <p className="text-sm text-muted-foreground">
@@ -1318,7 +1318,7 @@ export default function PipelinePage() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 py-2 border-y border-border sticky top-0 bg-background z-10">
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-border bg-background">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -1389,14 +1389,16 @@ export default function PipelinePage() {
         )}
       </div>
 
-      {hasActiveFilters && (
-        <p className="text-xs text-muted-foreground">
-          Showing {filteredProjects.length} of {totalProjects} projects
-        </p>
-      )}
+      {/* Scrollable content area */}
+      <div className="flex-1 overflow-y-auto">
+        {hasActiveFilters && (
+          <p className="text-xs text-muted-foreground px-4 py-2">
+            Showing {filteredProjects.length} of {totalProjects} projects
+          </p>
+        )}
 
-      {/* Main canvas */}
-      {viewMode === 'kanban' && (
+        {/* Main canvas */}
+        {viewMode === 'kanban' && (
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -1453,6 +1455,7 @@ export default function PipelinePage() {
           </Button>
         </div>
       )}
+      </div>
 
       {/* Detail Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
