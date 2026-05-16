@@ -1267,7 +1267,7 @@ export default function PipelinePage() {
   return (
     <div className="flex flex-col h-screen">
       {/* Sub-header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-border">
+      <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-4 p-4 border-b border-border bg-background">
         <div>
           <h1 className="text-2xl font-bold">Pipeline</h1>
           <p className="text-sm text-muted-foreground">
@@ -1318,7 +1318,7 @@ export default function PipelinePage() {
       </div>
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-border bg-background">
+      <div className="sticky top-[105px] z-30 flex flex-wrap items-center gap-2 px-4 py-2 border-b border-border bg-background">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input

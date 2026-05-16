@@ -136,40 +136,38 @@ function SidebarContent({
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 py-4">
-        <nav className={cn('flex flex-col gap-1', collapsed ? 'px-2' : 'px-3')}>
-          {navigation.map((item) => {
-            const isActive =
-              item.href === '/'
-                ? pathname === '/'
-                : pathname.startsWith(item.href)
+      <nav className={cn('flex flex-col gap-1 flex-1 py-4 overflow-hidden', collapsed ? 'px-2' : 'px-3')}>
+        {navigation.map((item) => {
+          const isActive =
+            item.href === '/'
+              ? pathname === '/'
+              : pathname.startsWith(item.href)
 
-            return (
-              <NavItem 
-                key={item.name} 
-                item={item} 
-                isActive={isActive} 
-                collapsed={collapsed}
-              />
-            )
-          })}
-          
-          <Separator className="my-3" />
-          
-          {adminNav.map((item) => {
-            const isActive = pathname.startsWith(item.href)
+          return (
+            <NavItem 
+              key={item.name} 
+              item={item} 
+              isActive={isActive} 
+              collapsed={collapsed}
+            />
+          )
+        })}
+        
+        <Separator className="my-3" />
+        
+        {adminNav.map((item) => {
+          const isActive = pathname.startsWith(item.href)
 
-            return (
-              <NavItem 
-                key={item.name} 
-                item={item} 
-                isActive={isActive} 
-                collapsed={collapsed}
-              />
-            )
-          })}
-        </nav>
-      </ScrollArea>
+          return (
+            <NavItem 
+              key={item.name} 
+              item={item} 
+              isActive={isActive} 
+              collapsed={collapsed}
+            />
+          )
+        })}
+      </nav>
 
       {/* User section */}
       <div className={cn(
