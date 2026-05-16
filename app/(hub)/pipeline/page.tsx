@@ -571,32 +571,30 @@ function KanbanColumn({
       <div
         ref={setNodeRef}
         className={cn(
-          'flex-1 rounded-b-lg border border-t-0 border-border p-2 min-h-[400px] transition-colors',
+          'flex-1 rounded-b-lg border border-t-0 border-border p-2 transition-colors',
           isOver ? 'bg-accent/10 border-accent' : 'bg-muted/20'
         )}
       >
-        <ScrollArea className="h-[calc(100vh-380px)]">
-          <div className="space-y-2 pr-2">
-            {projects.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="w-16 h-16 border-2 border-dashed border-muted-foreground/30 rounded-lg mb-3" />
-                <p className="text-xs text-muted-foreground">
-                  {stage === 'Lead'
-                    ? 'No new leads. Add one to get started.'
-                    : 'No projects in this stage.'}
-                </p>
-              </div>
-            ) : (
-              projects.map((project) => (
-                <SortableCard
-                  key={project.id}
-                  project={project}
-                  onClick={() => onCardClick(project)}
-                />
-              ))
-            )}
-          </div>
-        </ScrollArea>
+        <div className="space-y-2">
+          {projects.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="w-16 h-16 border-2 border-dashed border-muted-foreground/30 rounded-lg mb-3" />
+              <p className="text-xs text-muted-foreground">
+                {stage === 'Lead'
+                  ? 'No new leads. Add one to get started.'
+                  : 'No projects in this stage.'}
+              </p>
+            </div>
+          ) : (
+            projects.map((project) => (
+              <SortableCard
+                key={project.id}
+                project={project}
+                onClick={() => onCardClick(project)}
+              />
+            ))
+          )}
+        </div>
       </div>
     </div>
   )
@@ -1410,7 +1408,7 @@ export default function PipelinePage() {
             items={filteredProjects.map((p) => p.id)}
             strategy={verticalListSortingStrategy}
           >
-            <div className="flex gap-3 overflow-x-auto pb-4">
+            <div className="flex gap-3 overflow-x-auto">
               {stages.map((stage) => (
                 <KanbanColumn
                   key={stage}
